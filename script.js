@@ -15,32 +15,37 @@ var modal = ShowBlockingWaitDialog('Starting up…',
 removeLinks.each(function (i, el) {
     queue.push(el)
 });
-// Using a queue to avoid pissing off Steam - modifying the speed is NOT RECOMMENDED
-setInterval(() => {
-    if (queue.length > 0) {
-        var el = queue.shift();
-        var match = el.href.match(/javascript:RemoveFreeLicense\( ([0-9]+), '/);
-        if (match !== null) {
-            var packageid = +match[1];
-            jQuery.post(
-                'https://store.steampowered.com/account/removelicense',
-                {
-                    sessionid: g_sessionID,
-                    packageid: packageid
-                }
-            ).always(function () {
+if (queue.length == 0) {
+    console.log('No removable games found!')
+    modal.Dismiss();
+} else {
+    // Using a queue to avoid pissing off Steam - modifying the speed is NOT RECOMMENDED
+    setInterval(() => {
+        if (queue.length > 0) {
+            var el = queue.shift();
+            var match = el.href.match(/javascript:RemoveFreeLicense\( ([0-9]+), '/);
+            if (match !== null) {
+                var packageid = +match[1];
+                jQuery.post(
+                    'https://store.steampowered.com/account/removelicense',
+                    {
+                        sessionid: g_sessionID,
+                        packageid: packageid
+                    }
+                ).always(function () {
+                    loaded++;
+                    modal.Dismiss();
+                    if (loaded >= total) {
+                        // All done
+                        location.reload();
+                    } else {
+                        modal = ShowBlockingWaitDialog('Executing…',
+                            'Submitted <b>' + loaded + '</b>/' + total + ' removal requests.');
+                    }
+                });
+            } else {
                 loaded++;
-                modal.Dismiss();
-                if (loaded >= total) {
-                    // All done
-                    location.reload();
-                } else {
-                    modal = ShowBlockingWaitDialog('Executing…',
-                        'Submitted <b>' + loaded + '</b>/' + total + ' removal requests.');
-                }
-            });
-        } else {
-            loaded++;
+            }
         }
-    }
-}, 1000);
+    }, 1000);
+}
